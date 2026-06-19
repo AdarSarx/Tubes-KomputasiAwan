@@ -8,7 +8,13 @@ const Collaborator = require('./models/Collaborator')
 const app = express()
 const PORT = process.env.PORT || 3001
 
-app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:4173'] }))
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:4173',
+  process.env.FRONTEND_URL,
+].filter(Boolean)
+
+app.use(cors({ origin: allowedOrigins }))
 app.use(express.json())
 
 mongoose.connect(process.env.MONGO_URI)
