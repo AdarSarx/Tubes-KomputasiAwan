@@ -14,9 +14,70 @@ import pkl from './assets/pkl.png'
 import pengabdian from './assets/pengabdian.jpg'
 import studium from './assets/studium.jpg'
 import studium1 from './assets/studium1.jpg'
+import ProjectManager from './components/ProjectManager'
+import ContactManager from './components/ContactManager'
+import ContactSection from './components/ContactSection'
+import CollaboratorsSection from './components/CollaboratorsSection'
+
+const DEFAULT_PROJECTS = (presT, Behealthy, Reservasi, Mido) => [
+  { id: '1', title: 'PresT', stack: 'Figma', description: 'Website untuk manajement poin keaktifan siswa SMK Telkom Makassar', tag: 'UI/UX Design', image: presT },
+  { id: '2', title: 'Be-Healthy', stack: 'Tailwind, Laravel, MongoDB', description: 'Website penjualan produk kesehatan dengan fitur rekomendasi berbasis preferensi pengguna untuk update stok real-time dan juga memiliki fitur cek kesehatan.', tag: 'UI/UX Design, Fullstack', image: Behealthy },
+  { id: '3', title: 'Reservasi Restorant', stack: 'Java, MySQL', description: 'Website untuk reservasi restoran dengan fitur pemesanan meja secara online dan manajemen menu.', tag: 'UI/UX Design, Fullstack', image: Reservasi },
+  { id: '4', title: 'MIDO Smart Plant', stack: 'Arduino, C++', description: 'Website untuk monitoring dan kontrol sistem irigasi otomatis berbasis IoT dengan fitur pemantauan kelembaban tanah dan pengaturan jadwal penyiraman.', tag: 'IoT', image: Mido },
+]
 
 function App() {
   const [theme, setTheme] = useState('light')
+  const [isAdminOpen, setIsAdminOpen] = useState(false)
+  const [adminPanel, setAdminPanel] = useState('projects') // 'projects' | 'contacts'
+
+  const openProjectAdmin = () => { setAdminPanel('projects'); setIsAdminOpen(true) }
+  const openContactAdmin = () => { setAdminPanel('contacts'); setIsAdminOpen(true) }
+
+  const defaultProjects = useMemo(() => DEFAULT_PROJECTS(presT, Behealthy, Reservasi, Mido), [])
+
+  const [projects, setProjects] = useState(() => {
+    try {
+      const stored = localStorage.getItem('portfolio_projects')
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        const defaultMap = Object.fromEntries(DEFAULT_PROJECTS(presT, Behealthy, Reservasi, Mido).map((p) => [p.id, p]))
+        return parsed.map((p) => ({
+          ...p,
+          image: (defaultMap[p.id] && !p.image?.startsWith('http')) ? defaultMap[p.id].image : p.image,
+        }))
+      }
+    } catch { /* ignore */ }
+    return DEFAULT_PROJECTS(presT, Behealthy, Reservasi, Mido)
+  })
+
+  const handleAddProject = (project) => {
+    setProjects((prev) => {
+      const updated = [...prev, project]
+      localStorage.setItem('portfolio_projects', JSON.stringify(updated.map((p) => ({ ...p, image: p.image?.startsWith?.('http') ? p.image : null }))))
+      return updated
+    })
+  }
+
+  const handleUpdateProject = (updated) => {
+    setProjects((prev) => {
+      const next = prev.map((p) => {
+        if (p.id !== updated.id) return p
+        const defaultImg = defaultProjects.find((d) => d.id === updated.id)?.image
+        return { ...updated, image: updated.image || defaultImg || null }
+      })
+      localStorage.setItem('portfolio_projects', JSON.stringify(next.map((p) => ({ ...p, image: p.image?.startsWith?.('http') ? p.image : null }))))
+      return next
+    })
+  }
+
+  const handleDeleteProject = (id) => {
+    setProjects((prev) => {
+      const next = prev.filter((p) => (p.id ?? p.title) !== id)
+      localStorage.setItem('portfolio_projects', JSON.stringify(next.map((p) => ({ ...p, image: p.image?.startsWith?.('http') ? p.image : null }))))
+      return next
+    })
+  }
 
   useEffect(() => {
     const saved = localStorage.getItem('theme')
@@ -72,46 +133,6 @@ function App() {
       navLinks.forEach((link) => link.removeEventListener('click', onClick))
     }
   }, [])
-
-  const projects = useMemo(
-    () => [
-      {
-        title: 'PresT',
-        stack: 'Figma',
-        description:
-          'Website untuk manajement poin keaktifan siswa SMK Telkom Makassar',
-        tag: 'UI/UX Design',
-        image: presT,
-      },
-      {
-        title: 'Be-Healthy',
-        stack: 'Tailwind, Laravel, MongoDB',
-        description:
-          'Website penjualan produk kesehatan dengan fitur rekomendasi berbasis preferensi pengguna untuk update stok real-time dan juga memiliki fitur cek kesehatan.',
-        tag: 'UI/UX Design, Fullstack',
-        image: Behealthy,
-      },
-
-      {
-        title: 'Reservasi Restorant',
-        stack: 'Java, MySQL',
-        description:
-          'Website untuk reservasi restoran dengan fitur pemesanan meja secara online dan manajemen menu.',
-        tag: 'UI/UX Design, Fullstack',
-        image: Reservasi,
-      },
-
-      {
-        title: 'MIDO Smart Plant',
-        stack: 'Arduino, C++',
-        description:
-          'Website untuk monitoring dan kontrol sistem irigasi otomatis berbasis IoT dengan fitur pemantauan kelembaban tanah dan pengaturan jadwal penyiraman.',
-        tag: 'IoT',
-        image: Mido,
-      },
-    ],
-    [],
-  )
 
   const skills = useMemo(
     () => [
@@ -250,6 +271,26 @@ function App() {
 
   return (
     <div className="page">
+      {isAdminOpen && adminPanel === 'projects' && (
+        <ProjectManager
+          projects={projects}
+          onAdd={handleAddProject}
+          onUpdate={handleUpdateProject}
+          onDelete={handleDeleteProject}
+          onClose={() => setIsAdminOpen(false)}
+        />
+      )}
+      {isAdminOpen && adminPanel === 'contacts' && (
+        <ContactManager onClose={() => setIsAdminOpen(false)} />
+      )}
+      <div className="pm-fab-group">
+        <button className="pm-fab pm-fab-contact" onClick={openContactAdmin} aria-label="Lihat Pesan & Kolaborator" title="Pesan & Kolaborator">
+          ✉
+        </button>
+        <button className="pm-fab" onClick={openProjectAdmin} aria-label="Manage Projects" title="Manage Projects">
+          &#9998;
+        </button>
+      </div>
       <header className="nav">
         <div className="container nav-inner">
           <div className="logo-mark">Adar Sarx</div>
@@ -259,6 +300,7 @@ function App() {
             <a href="#projects">Projects</a>
             <a href="#experience">Experience</a>
             <a href="#organization">Organization</a>
+            <a href="#contact">Contact</a>
             <a href="#resume" className="button small">Resume</a>
           </nav>
           <button
@@ -491,6 +533,10 @@ function App() {
           </div>
         </div>
       </section>
+
+      <CollaboratorsSection />
+
+      <ContactSection />
 
       {/* Certificates section removed per request */}
       <section id="resume" className="section alt">
